@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Tester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f0f4f8;
+            --panel: #ffffff;
+            --border: #d1dce8;
+            --border-light: #e8eff6;
+            --accent: #1a6fc4;
+            --accent2: #0f9d6e;
+            --warn: #d97706;
+            --danger: #dc2626;
+            --text: #1e293b;
+            --text-dim: #64748b;
+            --text-muted: #94a3b8;
+            --mono: 'Share Tech Mono', monospace;
+            --sans: 'Exo 2', sans-serif;
+            --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            min-height: 100vh;
+            padding: 28px 16px;
+            background-image:
+                radial-gradient(ellipse at 15% 0%, rgba(26,111,196,0.06) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 100%, rgba(15,157,110,0.05) 0%, transparent 55%);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            margin-bottom: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 700px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.5;
+        }
+
+        .panel-title {
+            font-size: 0.65rem;
+            font-family: var(--mono);
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        label {
+            display: block;
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            padding: 10px 12px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        select:focus, input[type="number"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(26,111,196,0.12);
+            background: #fff;
+        }
+
+        .size-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .size-row input { flex: 1; }
+        .size-row select { width: 90px; flex-shrink: 0; }
+
+        .mem-hint {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--accent2);
+            margin-top: 6px;
+            min-height: 18px;
+        }
+
+        .mem-hint.warn { color: var(--warn); }
+        .mem-hint.error { color: var(--danger); }
+
+        .form-group { margin-bottom: 16px; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #1a6fc4, #2b8fe8);
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(26,111,196,0.3);
+        }
+
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 16px rgba(26,111,196,0.4);
+        }
+
+        #startBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #cancelBtn {
+            background: rgba(220,38,38,0.08);
+            color: var(--danger);
+            border: 1px solid rgba(220,38,38,0.25);
+        }
+
+        #cancelBtn:hover:not(:disabled) {
+            background: rgba(220,38,38,0.15);
+        }
+
+        #cancelBtn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* Progress */
+        .progress-track {
+            background: #f1f5f9;
+            border-radius: 100px;
+            height: 22px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #1a6fc4, #2b8fe8);
+            border-radius: 100px;
+            transition: width 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            to { left: 200%; }
+        }
+
+        .progress-label {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            text-align: center;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .stats-grid-top {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid, .stats-grid-top { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .stat-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 12px 10px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-val {
+            font-family: var(--mono);
+            font-size: 1rem;
+            color: var(--accent2);
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stat-key {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .stat-box.highlight { border-color: rgba(26,111,196,0.2); background: rgba(26,111,196,0.04); }
+        .stat-box.highlight .stat-val { color: var(--accent); }
+        .stat-box.danger { border-color: rgba(220,38,38,0.2); background: rgba(220,38,38,0.04); }
+        .stat-box.danger .stat-val { color: var(--danger); }
+        .stat-box.speed-write { border-color: rgba(15,157,110,0.2); background: rgba(15,157,110,0.04); }
+        .stat-box.speed-write .stat-val { color: #0b7a55; }
+        .stat-box.speed-read { border-color: rgba(124,58,237,0.2); background: rgba(124,58,237,0.04); }
+        .stat-box.speed-read .stat-val { color: #6d28d9; }
+
+        /* Coverage bar */
+        .coverage-wrap { margin-top: 12px; }
+
+        .coverage-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        .coverage-bar {
+            height: 8px;
+            background: #f1f5f9;
+            border-radius: 100px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .coverage-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0b7a55, #0f9d6e);
+            border-radius: 100px;
+            transition: width 0.4s ease;
+        }
+
+        /* Log */
+        #log {
+            height: 220px;
+            overflow-y: auto;
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            line-height: 1.7;
+            padding: 4px 2px;
+            color: var(--text);
+        }
+
+        #log::-webkit-scrollbar { width: 5px; }
+        #log::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        #log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .log-info { color: #334155; }
+        .log-success { color: #0b7a55; }
+        .log-error { color: var(--danger); }
+        .log-warning { color: var(--warn); }
+
+        .log-line {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .ts {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            margin-right: 8px;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 100px;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            float: right;
+            margin-top: -2px;
+        }
+
+        .status-badge.running {
+            border-color: rgba(26,111,196,0.35);
+            background: rgba(26,111,196,0.06);
+            color: var(--accent);
+        }
+
+        .status-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-badge.running .status-dot {
+            background: var(--accent);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>⚡ Memory Tester</h1>
+<div class="subtitle">// EMBEDDED SYSTEMS DIAGNOSTIC TOOL v2.0</div>
+
+<div class="grid">
+
+    <!-- Config Panel -->
+    <div class="panel">
+        <div class="panel-title">Configuration</div>
+
+        <div class="form-group">
+            <label>Memory Type</label>
+            <select id="memory" onchange="onMemoryChange()">
+                <option value="sram">SRAM</option>
+                <option value="sdcard">SD Card</option>
+                <option value="flash">Flash</option>
+                <option value="eeprom">EEPROM</option>
+            </select>
+            <div class="mem-hint" id="memSizeHint">Loading...</div>
+        </div>
+
+        <div class="form-group">
+            <label>Test Size</label>
+            <div class="size-row">
+                <input type="number" id="size" value="256" min="1" step="1" oninput="validateSize()">
+                <select id="unit" onchange="validateSize()">
+                    <option value="b">Bytes</option>
+                    <option value="kb">KB</option>
+                    <option value="mb" selected>MB</option>
+                    <option value="gb">GB</option>
+                </select>
+            </div>
+            <div class="mem-hint" id="sizeHint"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Data Pattern</label>
+            <select id="pattern">
+                <option value="random">Random (Worst Case)</option>
+                <option value="zeros">All Zeros (0x00)</option>
+                <option value="ones">All Ones (0xFF)</option>
+                <option value="checker">Checkerboard (0xAA/0x55)</option>
+            </select>
+        </div>
+
+        <div class="btn-row">
+            <button id="startBtn" onclick="startTest()">▶ Start Test</button>
+            <button id="cancelBtn" onclick="cancelTest()" disabled>⛔ Cancel</button>
+        </div>
+    </div>
+
+    <!-- Progress Panel -->
+    <div class="panel">
+        <div class="panel-title">
+            Progress
+            <span class="status-badge" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">IDLE</span>
+            </span>
+        </div>
+
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-label" id="progressLabel">0.00%</div>
+
+        <div class="coverage-wrap">
+            <div class="coverage-row">
+                <span>Coverage</span>
+                <span id="coveragePct">0%</span>
+            </div>
+            <div class="coverage-bar">
+                <div class="coverage-fill" id="coverageFill"></div>
+            </div>
+        </div>
+
+        <div style="margin-top: 14px;">
+            <!-- Row 1: Tested, Total, Errors, Elapsed -->
+            <div class="stats-grid-top">
+                <div class="stat-box highlight">
+                    <div class="stat-val" id="testedFmt">—</div>
+                    <div class="stat-key">Tested</div>
+                </div>
+                <div class="stat-box highlight">
+                    <div class="stat-val" id="totalFmt">—</div>
+                    <div class="stat-key">Total</div>
+                </div>
+                <div class="stat-box danger">
+                    <div class="stat-val" id="errCount">0</div>
+                    <div class="stat-key">Errors</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-val" id="elapsed">0s</div>
+                    <div class="stat-key">Elapsed</div>
+                </div>
+            </div>
+            <!-- Row 2: ETA, Write Speed, Read Speed -->
+            <div class="stats-grid" style="grid-template-columns: repeat(3,1fr);">
+                <div class="stat-box">
+                    <div class="stat-val" id="eta">—</div>
+                    <div class="stat-key">ETA</div>
+                </div>
+                <div class="stat-box speed-write">
+                    <div class="stat-val" id="writeSpeed">—</div>
+                    <div class="stat-key">Write Speed</div>
+                </div>
+                <div class="stat-box speed-read">
+                    <div class="stat-val" id="readSpeed">—</div>
+                    <div class="stat-key">Read Speed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="panel full-width">
+        <div class="panel-title">System Log</div>
+        <div id="log"></div>
+    </div>
+
+</div>
+
+<script>
+let es = null;
+let memMaxBytes = 0;
+
+const UNIT_MUL = { b: 1, kb: 1024, mb: 1024**2, gb: 1024**3 };
+
+function toBytes(val, unit) {
+    return parseFloat(val) * (UNIT_MUL[unit] || 1);
+}
+
+function fmtTime(sec) {
+    if (!sec || sec <= 0) return '—';
+    if (sec < 60) return sec.toFixed(1) + 's';
+    const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    return `${m}m ${s}s`;
+}
+
+async function onMemoryChange() {
+    const mem = document.getElementById('memory').value;
+    const hint = document.getElementById('memSizeHint');
+    hint.textContent = 'Fetching...';
+    hint.className = 'mem-hint';
+    try {
+        const r = await fetch(`/memory_info?memory=${mem}`);
+        const d = await r.json();
+        if (d.detected === false) {
+            memMaxBytes = 0;
+            hint.innerHTML = '⚠ No SD card detected — please insert one and retry';
+            hint.className = 'mem-hint error';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('sizeHint').textContent = '';
+        } else {
+            memMaxBytes = d.size_bytes;
+            hint.textContent = `Detected capacity: ${d.size_fmt}`;
+            hint.className = 'mem-hint';
+            validateSize();
+        }
+    } catch(e) {
+        hint.textContent = 'Could not fetch memory info';
+        hint.className = 'mem-hint warn';
+    }
+}
+
+function validateSize() {
+    const val = parseFloat(document.getElementById('size').value);
+    const unit = document.getElementById('unit').value;
+    const hint = document.getElementById('sizeHint');
+    const btn = document.getElementById('startBtn');
+
+    if (isNaN(val) || val <= 0) {
+        hint.textContent = 'Enter a valid size > 0';
+        hint.className = 'mem-hint error';
+        btn.disabled = true;
+        return;
+    }
+
+    const bytes = toBytes(val, unit);
+
+    if (memMaxBytes > 0 && bytes > memMaxBytes) {
+        const maxInUnit = memMaxBytes / UNIT_MUL[unit];
+        hint.textContent = `⚠ Exceeds capacity! Max: ${maxInUnit.toFixed(2)} ${unit.toUpperCase()}`;
+        hint.className = 'mem-hint error';
+        btn.disabled = true;
+    } else {
+        const readable = fmtBytes(bytes);
+        hint.textContent = `= ${readable}`;
+        hint.className = 'mem-hint';
+        btn.disabled = false;
+    }
+}
+
+function fmtBytes(b) {
+    const units = ['B','KB','MB','GB','TB'];
+    let i = 0;
+    while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }
+    return b.toFixed(2) + ' ' + units[i];
+}
+
+function setRunning(running) {
+    document.getElementById('startBtn').disabled = running;
+    document.getElementById('cancelBtn').disabled = !running;
+    const badge = document.getElementById('statusBadge');
+    const txt = document.getElementById('statusText');
+    if (running) {
+        badge.className = 'status-badge running';
+        txt.textContent = 'RUNNING';
+    } else {
+        badge.className = 'status-badge';
+        txt.textContent = 'IDLE';
+    }
+}
+
+function appendLog(msg, level = 'info') {
+    const log = document.getElementById('log');
+    const now = new Date();
+    const ts = now.toTimeString().slice(0,8);
+    const div = document.createElement('div');
+    div.className = `log-line log-${level}`;
+    div.innerHTML = `<span class="ts">[${ts}]</span>${escapeHtml(msg)}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtSpeed(mbps) {
+    if (!mbps || mbps <= 0) return '—';
+    return mbps.toFixed(2) + ' MB/s';
+}
+
+function updateStats(d) {
+    const pct = d.progress || 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = pct.toFixed(2) + '%';
+    document.getElementById('coverageFill').style.width = pct + '%';
+    document.getElementById('coveragePct').textContent = pct.toFixed(2) + '%';
+    document.getElementById('testedFmt').textContent = d.bytes_tested_fmt || '—';
+    document.getElementById('totalFmt').textContent = d.total_size_fmt || '—';
+    document.getElementById('errCount').textContent = d.errors || 0;
+    document.getElementById('elapsed').textContent = fmtTime(d.elapsed);
+    document.getElementById('eta').textContent = fmtTime(d.eta);
+    document.getElementById('writeSpeed').textContent = fmtSpeed(d.write_speed);
+    document.getElementById('readSpeed').textContent = fmtSpeed(d.read_speed);
+}
+
+async function startTest() {
+    const size = document.getElementById('size').value;
+    const unit = document.getElementById('unit').value;
+    const memory = document.getElementById('memory').value;
+    const pattern = document.getElementById('pattern').value;
+
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressLabel').textContent = '0.00%';
+    document.getElementById('coverageFill').style.width = '0%';
+    document.getElementById('coveragePct').textContent = '0%';
+    document.getElementById('writeSpeed').textContent = '—';
+    document.getElementById('readSpeed').textContent = '—';
+
+    const r = await fetch('/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ size, unit, memory, pattern })
+    });
+
+    const data = await r.json();
+    if (!r.ok) {
+        appendLog('❌ ' + (data.msg || 'Failed to start'), 'error');
+        return;
+    }
+
+    setRunning(true);
+
+    if (es) es.close();
+    es = new EventSource('/stream');
+
+    es.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+        if (d.type === 'log') {
+            appendLog(d.msg, d.level || 'info');
+        }
+        if (d.type === 'state') {
+            updateStats(d);
+        }
+        if (d.type === 'done') {
+            setRunning(false);
+            es.close();
+        }
+    };
+
+    es.onerror = () => {
+        appendLog('⚠ Stream disconnected', 'warning');
+        setRunning(false);
+        es.close();
+    };
+}
+
+async function cancelTest() {
+    await fetch('/cancel', { method: 'POST' });
+    appendLog('⛔ Cancellation requested...', 'warning');
+}
+
+// Init
+onMemoryChange();
+</script>
+</body>
+</html>
